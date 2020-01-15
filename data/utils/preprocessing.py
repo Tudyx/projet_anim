@@ -29,9 +29,8 @@ def crop_center(image, cx, cy, window_size=120):
 	pad_down = cy + window_size // 2 - w if cy + window_size // 2 > w else 0
 	pad = np.max([pad_left, pad_up, pad_right, pad_down])
 
-	img_pad = np.pad(img, ((pad, pad), (pad, pad), (0, 0))) if pad != 0 else image
+	img_pad = np.pad(image, ((pad, pad), (pad, pad), (0, 0))) if pad != 0 else image
 	cx += pad
-	cy += pad
-	assert 
+	cy += pad 
 
 	return img_pad[cx - window_size // 2: cx + window_size // 2, cy - window_size // 2: cy + window_size // 2, :]
