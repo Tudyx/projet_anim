@@ -1,1 +1,1 @@
-# projet_anim
+# Image Analysis II - Project. Data module
