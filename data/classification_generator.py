@@ -6,7 +6,6 @@ from tensorflow import keras
 from skimage.io import imread
 from collections import Counter
 from skimage import img_as_float
-from skimage.transform import resize
 
 
 class ClassificationGenerator(keras.utils.Sequence):
@@ -55,20 +54,20 @@ class ClassificationGenerator(keras.utils.Sequence):
             # cx, cy = self.nucleus_positions[filename]
 
             # Compose image path
-            image_filepath = os.path.join(self.dataset_root_path, "classification", filename)
+            image_filepath = os.path.join(self.dataset_root_path, filename)
             
             # Read image
             image_uint8 = imread(image_filepath)
             image_float = img_as_float(image_uint8)
-            image_float = resize(image_float, [200, 200, 3])
 
             # Apply preprocessing functions
             # image_float = crop_center(image_float, cx, cy)
 
             # Append to batch
             image_batch.append(image_float)
+        label_batch = np.array(label_batch)
 
-        return np.array(image_batch), label_batch
+        return np.array(image_batch), keras.utils.to_categorical(label_batch, num_classes=self.n_classes)
 
     def __next__(self):
         self.idx = (self.idx + 1) % len(self)
