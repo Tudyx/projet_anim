@@ -1,5 +1,6 @@
 import os
 import sys
+import random
 import argparse
 import numpy as np
 import pandas as pd
@@ -24,7 +25,13 @@ augmentation_output_path = args.dest_dir
 print("Augmenting images from {}. Saving on {}".format(args.src_dir, args.dest_dir))
 
 try:
-    os.makedirs(augmentation_output_path)
+    os.makedirs(os.path.join(augmentation_output_path, "Train"))
+except FileExistsError:
+    if not os.listdir(augmentation_output_path):
+        print("Error: folder {} already exists and is not empty. Exiting.".format(os.path.abspath(augmentation_output_path)))
+
+try:
+    os.makedirs(os.path.join(augmentation_output_path, "Test"))
 except FileExistsError:
     if not os.listdir(augmentation_output_path):
         print("Error: folder {} already exists and is not empty. Exiting.".format(os.path.abspath(augmentation_output_path)))
@@ -63,21 +70,36 @@ print("Abnormal\n... Number of Samples: {}".format(n_abnorm))
 print("Normal\n... Number of Samples: {}".format(n_normal))
 print("--------------------------------\n\n")
 
-n_abnorm = 0
-n_normal = 0
+nSamples = n_normal + n_abnorm
+nTest = np.floor(0.2 * n_normal)
+nTrain = nSamples - 2 * nTest
 
-print("Dataset after Data Augmentation summary:")
+print("Dataset partition into train/test:")
+print("... Number of samples: {}".format(n_normal + n_abnorm))
+print("... Number of test samples: {} (normal: {}, abnormal: {})".format(2 * nTest,
+                                                                         nTest,
+                                                                         nTest))
+print("... Number of training samples: {} (normal: {}, abnormal: {})".format(nSamples - 2 * nTest,
+                                                                             n_normal - nTest,
+                                                                             n_abnorm - nTest))
+print("\n\n")
+
+samples_distribution = {}
+print("New Class Distribution------------------")
 for key in summary.keys():
     if "[ABNORM]" in label_to_name_map[key]:
-        n_aug = 100
-        n_abnorm += n_aug * summary[key]
+        factor = 1 / 4
     else:
-        n_aug = 280
-        n_normal += n_aug * summary[key]
-    print("{}\n... Number of samples: {}\nAugmentation Factor: 1:{}".format(label_to_name_map[key], n_aug * summary[key], n_aug))
-    print("--------------------------------")
-print("Abnormal\n... Number of Samples: {}".format(n_abnorm))
-print("Normal\n... Number of Samples: {}".format(n_normal))
+        factor = 1 / 3
+    samples_distribution[key] = (
+        summary[key] - np.floor(factor * nTest),
+        np.floor(factor * nTest)
+    )
+    print("{}\n... Number of samples: {} ({}/{})".format(label_to_name_map[key],
+                                                         summary[key],
+                                                         summary[key] - np.floor(factor * nTest),
+                                                         np.floor(factor * nTest)))
+    print("---------------------------------------")
 
 answer = input("\n\n--> Proceed to augment images on {}? [y/n] ".format(os.path.abspath(dataset_root_path)))
 
@@ -91,6 +113,39 @@ else:
 
 filenames = df.values[:, 1]
 classes = df.values[:, -1]
+
+filenames_per_class = {
+    1: [filename for (filename, clss) in zip(filenames, classes) if clss == 1],
+    2: [filename for (filename, clss) in zip(filenames, classes) if clss == 2],
+    3: [filename for (filename, clss) in zip(filenames, classes) if clss == 3],
+    4: [filename for (filename, clss) in zip(filenames, classes) if clss == 4],
+    5: [filename for (filename, clss) in zip(filenames, classes) if clss == 5],
+    6: [filename for (filename, clss) in zip(filenames, classes) if clss == 6],
+    7: [filename for (filename, clss) in zip(filenames, classes) if clss == 7]
+}
+
+train_filenames = []
+train_labels = []
+
+test_filenames = []
+test_labels = []
+
+for clss in filenames_per_class:
+    nTrain, nTest = samples_distribution[clss]
+    print("Class: {}, nTrain: {}, nTest: {}".format(clss, nTrain, nTest))
+    random.shuffle(filenames_per_class[clss])
+    
+    train_filenames.extend(filenames_per_class[clss][:int(nTrain)])
+    train_labels.extend(int(nTrain) * [clss])
+
+    test_filenames.extend(filenames_per_class[clss][int(nTrain):])
+    test_labels.extend(int(nTest) * [clss])
+
+print("Partition constructed.")
+print("... {} filenames in train list".format(len(train_filenames)))
+print("... {} labels in train list".format(len(train_labels)))
+print("... {} filenames in test list".format(len(test_filenames)))
+print("... {} labels in test list".format(len(test_labels)))
 
 augmentations = {
     1: {
@@ -123,14 +178,15 @@ augmentations = {
     }
 }
 
+print("Augmenting images from training dataset")
 _augmented_filenames = []
 _augmented_classes = []
-for filename, clss in tqdm(zip(filenames, classes)):
+for filename, clss in tqdm(zip(train_filenames, train_labels), ncols=140):
     cx, cy = nucleus_positions[filename]
     image = imread(os.path.join(dataset_root_path, filename))
     _image = crop_center(image, cx, cy, window_size=128)
 
-    imsave(os.path.join(augmentation_output_path, filename), _image)
+    imsave(os.path.join(augmentation_output_path, "Train", filename), _image)
     _augmented_filenames.append(filename)
     _augmented_classes.append(clss)
 
@@ -148,9 +204,30 @@ for filename, clss in tqdm(zip(filenames, classes)):
             _image_t = translation.augment_image(_image)
             _image_r = rotation.augment_image(_image_t)
 
-            imsave(os.path.join(augmentation_output_path, augmented_filename), _image_r)
+            imsave(os.path.join(augmentation_output_path, "Train", augmented_filename), _image_r)
 
-with open("../data/database/tmp/results.csv", "w") as file:
+with open(os.path.join(augmentation_output_path, "Train", "results.csv"), "w") as file:
+    file.write("Image Filepath,Class\n")
+    for filename, clss in zip(_augmented_filenames, _augmented_classes):
+        if clss in [1, 2, 3]:
+            _clss = 0
+        elif clss in [4, 5, 6, 7]:
+            _clss = 1
+        file.write("{},{}\n".format(filename, _clss))
+
+print("Processing images from test dataset")
+_augmented_filenames = []
+_augmented_classes = []
+for filename, clss in tqdm(zip(test_filenames, test_labels), ncols=140):
+    cx, cy = nucleus_positions[filename]
+    image = imread(os.path.join(dataset_root_path, filename))
+    _image = crop_center(image, cx, cy, window_size=128)
+    _augmented_filenames.append(filename)
+    _augmented_classes.append(clss)
+
+    imsave(os.path.join(augmentation_output_path, "Test", filename), _image)
+
+with open(os.path.join(augmentation_output_path, "Test", "results.csv"), "w") as file:
     file.write("Image Filepath,Class\n")
     for filename, clss in zip(_augmented_filenames, _augmented_classes):
         if clss in [1, 2, 3]:
