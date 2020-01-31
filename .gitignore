@@ -2,4 +2,4 @@
 */*/__pycache__
 */.ipynb_checkpoints
 ./results/*
-./data/database/tmp/
+./data/database/tmp/*

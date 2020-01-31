@@ -9,7 +9,7 @@ from skimage import img_as_float
 
 
 class ClassificationGenerator(keras.utils.Sequence):
-    
+    """class to create or set of data with the associated label"""
     def __init__(self, dataset_root_path, augmentation_dict=None, batch_size=32, n_channels=3, shuffle=True):
         """Initialization"""
         self.dataset_root_path = dataset_root_path
@@ -18,6 +18,7 @@ class ClassificationGenerator(keras.utils.Sequence):
         self.filenames = csv_file["Image Filepath"].values[:]
         self.n_images = len(self.filenames)
         self.labels = {
+        #créer un tableau avec pour éléments des clefs et des valeurs filename:label. On parcours self.filename csv.file en même temps
             filename: label for filename, label in zip(self.filenames, csv_file["Class"].values[:])
         }
         
@@ -68,7 +69,7 @@ class ClassificationGenerator(keras.utils.Sequence):
         label_batch = np.array(label_batch)
 
         return np.array(image_batch), keras.utils.to_categorical(label_batch, num_classes=self.n_classes)
-
+    #surcharge de l'opérateur next afin de rendre l'objet itérable
     def __next__(self):
         self.idx = (self.idx + 1) % len(self)
         return self.__getitem__(self.idx)
