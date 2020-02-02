@@ -38,6 +38,31 @@ def crop_center(image, cx, cy, window_size=120):
     return img_pad[cx - window_size // 2: cx + window_size // 2, cy - window_size // 2: cy + window_size // 2, :]
 
 
+def pad_to_center(image, desired_size=512):
+    """Taken an image and pad it, so that the original image/label is located at
+    the center of the padded image.
+
+    Parameters
+    ----------
+    image : :class:`numpy.ndarray`
+        8bit RGB image
+    desired_size : int
+        Integer for the height and width of the new image.
+    """
+    h, w = image.shape[:2]
+    assert desired_size > h and desired_size > w, "Invalid shape {} for desired size {}".format(image.shape, desired_size)
+
+    nh = (desired_size - h) // 2
+    nw = (desired_size - w) // 2
+
+    if image.ndim == 3:
+        return np.pad(image, ((nh, nh), (nw, nw), (0, 0)))
+    elif image.ndim == 2:
+        return np.pad(image, ((nh, nh), (nw, nw)))
+    else:
+        print("Error: expected input array to have ndim >= 2, but got {}".format(image.ndim))
+
+
 def find_nucleus(segmented_bitmap_path):
     """Extracts nucleus, cytoplasm and background from segmented image.
 
