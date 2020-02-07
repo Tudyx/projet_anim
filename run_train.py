@@ -40,7 +40,8 @@ model.compile(optimizer=adamopt,
                   metrics.FalsePositives(),
                   metrics.FalseNegatives(),
                   metrics.TruePositives(),
-                  metrics.TrueNegatives()
+                  metrics.TrueNegatives(),
+                  metrics.AUC()
               ])
 
 model.fit_generator(generator=trainGen,

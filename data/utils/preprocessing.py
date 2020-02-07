@@ -52,13 +52,21 @@ def pad_to_center(image, desired_size=512):
     h, w = image.shape[:2]
     assert desired_size > h and desired_size > w, "Invalid shape {} for desired size {}".format(image.shape, desired_size)
 
-    nh = (desired_size - h) // 2
-    nw = (desired_size - w) // 2
+    if (desired_size - h) % 2 == 0:
+        nh_left = nh_right = (desired_size - h) // 2
+    else:
+        nh_left = (desired_size - h) // 2
+        nh_right = nh_left + 1
+    if (desired_size - w) % 2 == 0:
+        nw_left = nw_right = (desired_size - w) // 2
+    else:
+        nw_left = (desired_size - w) // 2
+        nw_right = nh_left + 1
 
     if image.ndim == 3:
-        return np.pad(image, ((nh, nh), (nw, nw), (0, 0)))
+        return np.pad(image, ((nh_left, nh_right), (nw_left, nw_right), (0, 0)))
     elif image.ndim == 2:
-        return np.pad(image, ((nh, nh), (nw, nw)))
+        return np.pad(image, ((nh_left, nh_right), (nw_left, nw_right)))
     else:
         print("Error: expected input array to have ndim >= 2, but got {}".format(image.ndim))
 

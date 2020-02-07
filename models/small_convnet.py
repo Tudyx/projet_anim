@@ -6,13 +6,13 @@ def small_convnet(image_shape=(128, 128, 3), num_classes=2, verbose=True,
     input_layer = tf.keras.layers.Input(shape=image_shape)
     # Conv + pool
     conv1 = tf.keras.layers.Conv2D(filters=32, kernel_size=7, padding="same")(input_layer)
-    if normalize: conv3 = tf.keras.layers.BatchNormalization()(conv1)
+    if normalize: conv1 = tf.keras.layers.BatchNormalization()(conv1)
     conv1 = tf.keras.layers.ReLU()(conv1)
     max_pool1 = tf.keras.layers.MaxPooling2D(strides=(2, 2), padding="same")(conv1)
 
     # Conv + pool
     conv2 = tf.keras.layers.Conv2D(filters=32, kernel_size=7, padding="same")(max_pool1)
-    if normalize: conv3 = tf.keras.layers.BatchNormalization()(conv2)
+    if normalize: conv2 = tf.keras.layers.BatchNormalization()(conv2)
     conv2 = tf.keras.layers.ReLU()(conv2)
     max_pool2 = tf.keras.layers.MaxPooling2D(strides=(2, 2), padding="same")(conv2)
 
@@ -24,7 +24,7 @@ def small_convnet(image_shape=(128, 128, 3), num_classes=2, verbose=True,
 
     # Final conv
     conv4 = tf.keras.layers.Conv2D(filters=16, kernel_size=7, strides=(2, 2), padding="same")(max_pool3)
-    if normalize: conv3 = tf.keras.layers.BatchNormalization()(conv4)
+    if normalize: conv4 = tf.keras.layers.BatchNormalization()(conv4)
     conv4 = tf.keras.layers.ReLU()(conv4)
 
     # Classifier
